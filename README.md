@@ -69,43 +69,77 @@ Periode data: **2020–2024**
 ---
 
 ## 📁 Struktur Proyek
-
-samudera/
-├── api/
-│ ├── services/
-│ │ └── auth_lib.php
-│ ├── budidaya_fetch.php
-│ ├── change_password.php
-│ ├── db.php
-│ ├── file_manager_api.php
-│ ├── login_api.php
-│ ├── tangkap_fetch.php
-│ └── ...
+```bash
+samudata/
+├── api/ # Backend REST API
+│ ├── services/ # Service layer
+│ │ └── auth_lib.php # Authentication library
+│ ├── budidaya_fetch.php # Fetch data budidaya
+│ ├── budidaya_fetch_all.php # Fetch all budidaya data
+│ ├── change_password.php # Change password endpoint
+│ ├── check_session.php # Session validation
+│ ├── dashboard_totals.php # Dashboard statistics
+│ ├── db.php # Database connection (PDO)
+│ ├── download_file.php # File download handler
+│ ├── download_template.php # Template download
+│ ├── ekspor_fetch.php # Fetch data ekspor
+│ ├── ekspor_fetch_all.php # Fetch all ekspor data
+│ ├── file_manager_api.php # File CRUD operations
+│ ├── files.php # File listing
+│ ├── get_user_profile.php # User profile endpoint
+│ ├── investasi_fetch.php # Fetch data investasi
+│ ├── kpp_fetch.php # Fetch data KPP garam
+│ ├── landing_stats.php # Landing page statistics
+│ ├── login_api.php # Login endpoint
+│ ├── pengolahan_pemasaran_*.php # Fetch data pengolahan
+│ ├── register.php # Registration endpoint
+│ ├── save_rows.php # Save data rows
+│ ├── tangkap_fetch.php # Fetch data tangkap
+│ └── tangkap_fetch_all.php # Fetch all tangkap data
 │
-├── uploads/
-├── logs/
+├── uploads/ # Uploaded Excel files
+├── logs/ # Application logs
 │ └── php_errors.log
 │
-├── database_schema.sql
-├── database_config.php
-├── db.php
+├── database_schema.sql # Database migration
+├── database_config.php # Database configuration
+├── db.php # Database connection
 │
-├── index.php
-├── login.php
-├── dashboard.php
-├── file-manager.php
+├── index.php # Main entry point
+├── login.php # Login page
+├── logout.php # Logout handler
+├── register.php # Registration page
 │
-├── perikanan-tangkap.php
-├── perikanan-budidaya.php
-├── kpp.php
-├── ekspor-perikanan.php
+├── dashboard.php # Dashboard page
+├── file-manager.php # File manager UI
+├── pengaturan-akun.php # Account settings
 │
-├── Dockerfile.txt
-├── README.md
-└── INSTALLATION_GUIDE.md
-
-
-
+├── perikanan-tangkap.php # Statistik tangkap
+├── perikanan-budidaya.php # Statistik budidaya
+├── kpp.php # Statistik KPP garam
+├── pengolahan-pemasaran.php # Statistik pengolahan
+├── investasi.php # Statistik investasi
+├── ekspor-perikanan.php # Statistik ekspor
+│
+├── download_template.php # Template downloader
+├── files.php # File listing page
+├── map.html # Interactive map
+│
+├── protected_template.php # Protected page template
+├── default.php # Default page template
+│
+├── Dockerfile.txt # Docker configuration
+├── server.log # Server logs
+│
+├── README.md # Dokumentasi utama
+├── README_DATABASE.md # Database documentation
+├── README_DEPLOYMENT.md # Deployment guide
+├── DEPLOYMENT_GUIDE.md # Deployment instructions
+├── INSTALLATION_GUIDE.md # Installation guide
+├── PANDUAN_DEPLOYMENT... # Panduan deployment (ID)
+│
+└── samudata-project dkpjati... # Project archive
+```
 ---
 
 ## ⚙️ Instalasi & Deployment
