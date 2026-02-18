@@ -1,285 +1,134 @@
 <?php
-/**
- * Files API for Samudata Application
- */
+// api/files.php — List/Download/Delete untuk fm_files (kompatibel front-end lama/baru)
+declare(strict_types=1);
+require_once __DIR__ . '/db.php';
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Content-Type: application/json; charset=utf-8');
 
-// Handle preflight requests
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-
-require_once '../database_config.php';
+$action = $_GET['action'] ?? ($_POST['action'] ?? 'list');
 
 try {
-    // Initialize database if needed
-    if (!DatabaseConfig::testConnection()) {
-        DatabaseConfig::initializeDatabase();
-    }
-    
-    $fileManager = new FileManager();
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        $action = $_GET['action'] ?? 'list';
-        
-        switch ($action) {
-            case 'list':
-                // Get files with optional filters
-                $filters = [];
-                if (!empty($_GET['category'])) {
-                    $filters['category'] = $_GET['category'];
-                }
-                if (!empty($_GET['region'])) {
-                    $filters['region'] = $_GET['region'];
-                }
-                if (!empty($_GET['search'])) {
-                    $filters['search'] = $_GET['search'];
-                }
-                if (!empty($_GET['limit'])) {
-                    $filters['limit'] = (int)$_GET['limit'];
-                }
-                
-                $files = $fileManager->getFiles($filters);
-                
-                // Format file data for frontend
-                $formattedFiles = array_map(function($file) {
-                    return [
-                        'id' => $file['id'],
-                        'title' => $file['title'],
-                        'description' => $file['description'],
-                        'filename' => $file['original_filename'],
-                        'size' => $file['file_size'],
-                        'category' => $file['category_name'],
-                        'region' => $file['region_name'],
-                        'uploader' => $file['uploader_name'],
-                        'upload_date' => $file['upload_date'],
-                        'download_count' => $file['download_count'],
-                        'is_favorite' => (bool)$file['is_favorite'],
-                        'created_at' => $file['created_at'],
-                        'tags' => json_decode($file['tags'] ?? '[]', true)
-                    ];
-                }, $files);
-                
-                echo json_encode([
-                    'success' => true,
-                    'data' => $formattedFiles,
-                    'total' => count($formattedFiles)
-                ]);
-                break;
-                
-            case 'categories':
-                $categories = $fileManager->getCategories();
-                echo json_encode([
-                    'success' => true,
-                    'data' => $categories
-                ]);
-                break;
-                
-            case 'regions':
-                $regions = $fileManager->getRegions();
-                echo json_encode([
-                    'success' => true,
-                    'data' => $regions
-                ]);
-                break;
-                
-            case 'stats':
-                $stats = DatabaseConfig::getStats();
-                if ($stats) {
-                    echo json_encode([
-                        'success' => true,
-                        'data' => $stats
-                    ]);
-                } else {
-                    throw new Exception("Failed to get statistics");
-                }
-                break;
-                
-            case 'download':
-                // Download file
-                $fileId = $_GET['id'] ?? null;
-                if (!$fileId) {
-                    throw new Exception("File ID is required");
-                }
-                
-                $result = $fileManager->downloadFile($fileId);
-                if ($result['success']) {
-                    // Log the download
-                    $fileManager->logFileAccess($fileId, 'download');
-                    
-                    // Return file info for download
-                    echo json_encode($result);
-                } else {
-                    throw new Exception($result['message']);
-                }
-                break;
-                
-            case 'logs':
-                // Get activity logs
-                $startDate = $_GET['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
-                $endDate = $_GET['end_date'] ?? date('Y-m-d');
-                $actionFilter = $_GET['action_filter'] ?? '';
-                
-                $logs = $fileManager->getActivityLogs($startDate, $endDate, $actionFilter);
-                echo json_encode([
-                    'success' => true,
-                    'data' => $logs
-                ]);
-                break;
-                
-            case 'log_stats':
-                // Get log statistics
-                $stats = $fileManager->getLogStatistics();
-                echo json_encode([
-                    'success' => true,
-                    'data' => $stats
-                ]);
-                break;
-                
-            case 'requests':
-                // Get file requests
-                $statusFilter = $_GET['status_filter'] ?? '';
-                $priorityFilter = $_GET['priority_filter'] ?? '';
-                $categoryFilter = $_GET['category_filter'] ?? '';
-                
-                $requests = $fileManager->getFileRequests($statusFilter, $priorityFilter, $categoryFilter);
-                echo json_encode([
-                    'success' => true,
-                    'data' => $requests
-                ]);
-                break;
-                
-            case 'request_stats':
-                // Get request statistics
-                $stats = $fileManager->getRequestStatistics();
-                echo json_encode([
-                    'success' => true,
-                    'data' => $stats
-                ]);
-                break;
-                
-            case 'export_logs':
-                // Export logs as CSV
-                $startDate = $_GET['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
-                $endDate = $_GET['end_date'] ?? date('Y-m-d');
-                $actionFilter = $_GET['action_filter'] ?? '';
-                
-                $fileManager->exportLogs($startDate, $endDate, $actionFilter);
-                exit; // Don't return JSON for file download
-                break;
-                
-            default:
-                http_response_code(400);
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Invalid action'
-                ]);
-        }
-    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $action = $_POST['action'] ?? 'upload';
-        
-        switch ($action) {
-            case 'favorite':
-                // Toggle favorite status
-                $fileId = $_POST['file_id'] ?? null;
-                if (!$fileId) {
-                    throw new Exception("File ID is required");
-                }
-                
-                $result = $fileManager->toggleFavorite($fileId);
-                echo json_encode($result);
-                break;
-                
-            case 'archive':
-                // Archive file
-                $fileId = $_POST['file_id'] ?? null;
-                if (!$fileId) {
-                    throw new Exception("File ID is required");
-                }
-                
-                $result = $fileManager->archiveFile($fileId);
-                echo json_encode($result);
-                break;
-                
-            case 'delete':
-                // Delete file
-                $fileId = $_POST['file_id'] ?? null;
-                if (!$fileId) {
-                    throw new Exception("File ID is required");
-                }
-                
-                $result = $fileManager->deleteFile($fileId);
-                echo json_encode($result);
-                break;
-                
-            case 'edit':
-                // Edit file metadata
-                $fileId = $_POST['file_id'] ?? null;
-                if (!$fileId) {
-                    throw new Exception("File ID is required");
-                }
-                
-                $metadata = [
-                    'title' => $_POST['title'] ?? '',
-                    'description' => $_POST['description'] ?? '',
-                    'tags' => !empty($_POST['tags']) ? explode(',', $_POST['tags']) : []
-                ];
-                
-                $result = $fileManager->editFile($fileId, $metadata);
-                echo json_encode($result);
-                break;
-                
-            case 'create_request':
-                // Create file request
-                $requestData = [
-                    'title' => $_POST['title'] ?? '',
-                    'description' => $_POST['description'] ?? '',
-                    'category' => $_POST['category'] ?? '',
-                    'priority' => $_POST['priority'] ?? '',
-                    'deadline' => $_POST['deadline'] ?? null,
-                    'requester_name' => $_POST['requester_name'] ?? ''
-                ];
-                
-                $result = $fileManager->createFileRequest($requestData);
-                echo json_encode($result);
-                break;
-                
-            case 'update_request_status':
-                // Update request status
-                $requestId = $_POST['request_id'] ?? null;
-                $status = $_POST['status'] ?? '';
-                
-                if (!$requestId || !$status) {
-                    throw new Exception("Request ID and status are required");
-                }
-                
-                $result = $fileManager->updateRequestStatus($requestId, $status);
-                echo json_encode($result);
-                break;
-                
-            default:
-                http_response_code(400);
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Invalid action'
-                ]);
-        }
-    } else {
-        http_response_code(405);
-        echo json_encode(['success' => false, 'message' => 'Method not allowed']);
-    }
-    
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => $e->getMessage()
-    ]);
-}
-?>
+  /* =========================
+   * LIST
+   * ========================= */
+  if ($action === 'list') {
+    $search = trim($_GET['search'] ?? '');
+    $bidang = trim($_GET['bidang'] ?? '');
+    $tahun  = trim($_GET['tahun']  ?? '');
 
+    $pdo = pdo();
+    $sql = "SELECT id, original_name, stored_name, bidang, tahun,
+                   size_bytes, mime_type, uploaded_at
+            FROM fm_files
+            WHERE deleted_at IS NULL";
+    $p = [];
+    if ($search !== '') { $sql .= " AND original_name LIKE ?"; $p[] = "%$search%"; }
+    if ($bidang !== '') { $sql .= " AND bidang = ?";            $p[] = $bidang; }
+    if ($tahun  !== '') { $sql .= " AND tahun  = ?";            $p[] = $tahun;  }
+    $sql .= " ORDER BY uploaded_at DESC";
+
+    $st = $pdo->prepare($sql);
+    $st->execute($p);
+
+    $rows = [];
+    while ($r = $st->fetch()) {
+      $uploadedAt = strtotime($r['uploaded_at']);
+      $rows[] = [
+        // ===== skema BARU
+        'id'       => (int)$r['id'],
+        'name'     => $r['original_name'],
+        'bidang'   => $r['bidang'],
+        'tahun'    => $r['tahun'],
+        'size'     => (int)$r['size_bytes'],
+        'mime'     => $r['mime_type'],
+        'modified' => date('c', $uploadedAt),
+
+        // ===== alias skema LAMA (untuk files.js varian lama)
+        'title'       => $r['original_name'],
+        'filename'    => $r['stored_name'],                       // nama file fisik
+        'file_size'   => (int)$r['size_bytes'],
+        'category'    => $r['bidang'],
+        'upload_date' => date('Y-m-d H:i:s', $uploadedAt),
+        'created_at'  => date('Y-m-d H:i:s', $uploadedAt),
+        'description' => '',
+        'region'      => '',
+        'is_favorite' => 0
+      ];
+    }
+
+    echo json_encode([
+      'success' => true,
+      'count'   => count($rows),
+      'data'    => $rows
+    ]);
+    exit;
+  }
+
+  /* =========================
+   * DOWNLOAD
+   * ========================= */
+  if ($action === 'download') {
+    $id = (int)($_GET['id'] ?? 0);
+    if (!$id) json_err('ID kosong');
+
+    $pdo = pdo();
+    $st = $pdo->prepare("SELECT stored_name, original_name
+                         FROM fm_files
+                         WHERE id=? AND deleted_at IS NULL");
+    $st->execute([$id]);
+    $row = $st->fetch();
+    if (!$row) json_err('File tidak ditemukan', [], 404);
+
+    $rel = 'storage/uploads/'.$row['stored_name'];
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\'); // /api
+    $url  = $scheme.'://'.$host.$base.'/../'.$rel;
+
+    if (session_status() !== PHP_SESSION_ACTIVE) @session_start();
+    $actor = $_SESSION['display_name'] ?? $_SESSION['username'] ?? '';
+    $pdo->prepare("INSERT INTO fm_actions(file_id,action,actor,info)
+                   VALUES (?,?,?,?)")
+        ->execute([$id,'download',$actor,json_encode(['ip'=>$_SERVER['REMOTE_ADDR'] ?? ''])]);
+
+    echo json_encode(['success'=>true,'url'=>$url,'filename'=>$row['original_name']]);
+    exit;
+  }
+
+  /* =========================
+   * DELETE (soft default, hard jika permanent=1)
+   * ========================= */
+  if ($action === 'delete') {
+    $id = (int)($_POST['id'] ?? 0);
+    $permanent = (int)($_POST['permanent'] ?? 0);
+    if (!$id) json_err('ID kosong');
+
+    $pdo = pdo();
+
+    if ($permanent === 1) {
+      // hard delete: hapus file fisik + row
+      $st = $pdo->prepare("SELECT stored_name FROM fm_files WHERE id=?");
+      $st->execute([$id]);
+      if ($row = $st->fetch()) {
+        @unlink(dirname(__DIR__).'/storage/uploads/'.$row['stored_name']);
+      }
+      $pdo->prepare("DELETE FROM fm_files WHERE id=?")->execute([$id]);
+    } else {
+      // soft delete
+      $pdo->prepare("UPDATE fm_files SET deleted_at = NOW() WHERE id=?")->execute([$id]);
+    }
+
+    if (session_status() !== PHP_SESSION_ACTIVE) @session_start();
+    $actor = $_SESSION['display_name'] ?? $_SESSION['username'] ?? '';
+    $pdo->prepare("INSERT INTO fm_actions(file_id,action,actor) VALUES (?,?,?)")
+        ->execute([$id,'delete',$actor]);
+
+    echo json_encode(['success'=>true]);
+    exit;
+  }
+
+  json_err('Action tidak dikenal');
+
+} catch (Throwable $e) {
+  json_err('API error: '.$e->getMessage());
+}

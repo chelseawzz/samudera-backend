@@ -1,0 +1,547 @@
+"ringkasan": [
+        {
+            "CABANG USAHA": "L a u t - Non Pelabuhan",
+            "Nelayan (Orang)": 208050,
+            "RTP/PP (Orang/Unit)": 100601,
+            "Armada Perikanan (Buah)": 54854,
+            "Alat Tangkap (Unit)": 225233,
+            "Volume (Ton)": 0,
+            "Nilai (Rp 1.000)": 11425435755
+        },
+        {
+            "CABANG USAHA": "Perairan Umum - Open Water",
+            "Nelayan (Orang)": 14730,
+            "RTP/PP (Orang/Unit)": 13988,
+            "Armada Perikanan (Buah)": 1070,
+            "Alat Tangkap (Unit)": 32415,
+            "Volume (Ton)": 12179,
+            "Nilai (Rp 1.000)": 244946632
+        }
+    ],
+    "matrix": {
+        "subsectors": [
+            "JUMLAH - Total",
+            "Laut - Non Pelabuhan",
+            "Perairan Umum - Open Water"
+        ],
+        "rows": [
+            {
+                "Wilayah": "Bangkalan",
+                "JUMLAH - Total": 26676,
+                "Laut - Non Pelabuhan": 26607,
+                "Perairan Umum - Open Water": 69
+            },
+            {
+                "Wilayah": "Banyuwangi",
+                "JUMLAH - Total": 47321,
+                "Laut - Non Pelabuhan": 46176,
+                "Perairan Umum - Open Water": 1145
+            },
+            {
+                "Wilayah": "Blitar",
+                "JUMLAH - Total": 1619,
+                "Laut - Non Pelabuhan": 1332,
+                "Perairan Umum - Open Water": 287
+            },
+            {
+                "Wilayah": "Bojonegoro",
+                "JUMLAH - Total": 1114,
+                "Laut - Non Pelabuhan": 0,
+                "Perairan Umum - Open Water": 1114
+            },
+            {
+                "Wilayah": "Bondowoso",
+                "JUMLAH - Total": 120,
+                "Laut - Non Pelabuhan": 0,
+                "Perairan Umum - Open Water": 120
+            },
+            {
+                "Wilayah": "Gresik",
+                "JUMLAH - Total": 12144,
+                "Laut - Non Pelabuhan": 11744,
+                "Perairan Umum - Open Water": 400
+            },
+            {
+                "Wilayah": "Jember",
+                "JUMLAH - Total": 17103,
+                "Laut - Non Pelabuhan": 16906,
+                "Perairan Umum - Open Water": 198
+            },
+            {
+                "Wilayah": "Jombang",
+                "JUMLAH - Total": 151,
+                "Laut - Non Pelabuhan": 0,
+                "Perairan Umum - Open Water": 151
+            },
+            {
+                "Wilayah": "Kediri",
+                "JUMLAH - Total": 94,
+                "Laut - Non Pelabuhan": 0,
+                "Perairan Umum - Open Water": 94
+            },
+            {
+                "Wilayah": "Kota Kediri",
+                "JUMLAH - Total": 31,
+                "Laut - Non Pelabuhan": 0,
+                "Perairan Umum - Open Water": 31
+            },
+            {
+                "Wilayah": "Kota Madiun",
+                "JUMLAH - Total": 94,
+                "Laut - Non Pelabuhan": 0,
+                "Perairan Umum - Open Water": 94
+            },
+            {
+                "Wilayah": "Kota Mojokerto",
+                "JUMLAH - Total": 33,
+                "Laut - Non Pelabuhan": 0,
+                "Perairan Umum - Open Water": 33
+            },
+            {
+                "Wilayah": "Kota Pasuruan",
+                "JUMLAH - Total": 10014,
+                "Laut - Non Pelabuhan": 10014,
+                "Perairan Umum - Open Water": 0
+            },
+            {
+                "Wilayah": "Kota Probolinggo",
+                "JUMLAH - Total": 23760,
+                "Laut - Non Pelabuhan": 23746,
+                "Perairan Umum - Open Water": 15
+            },
+            {
+                "Wilayah": "Kota Surabaya",
+                "JUMLAH - Total": 7971,
+                "Laut - Non Pelabuhan": 7868,
+                "Perairan Umum - Open Water": 103
+            },
+            {
+                "Wilayah": "Lamongan",
+                "JUMLAH - Total": 149418,
+                "Laut - Non Pelabuhan": 149272,
+                "Perairan Umum - Open Water": 146
+            },
+            {
+                "Wilayah": "Lumajang",
+                "JUMLAH - Total": 9077,
+                "Laut - Non Pelabuhan": 6272,
+                "Perairan Umum - Open Water": 2805
+            },
+            {
+                "Wilayah": "Madiun",
+                "JUMLAH - Total": 509,
+                "Laut - Non Pelabuhan": 0,
+                "Perairan Umum - Open Water": 509
+            },
+            {
+                "Wilayah": "Magetan",
+                "JUMLAH - Total": 44,
+                "Laut - Non Pelabuhan": 0,
+                "Perairan Umum - Open Water": 44
+            },
+            {
+                "Wilayah": "Malang",
+                "JUMLAH - Total": 15988,
+                "Laut - Non Pelabuhan": 14818,
+                "Perairan Umum - Open Water": 1171
+            },
+            {
+                "Wilayah": "Mojokerto",
+                "JUMLAH - Total": 120,
+                "Laut - Non Pelabuhan": 0,
+                "Perairan Umum - Open Water": 120
+            },
+            {
+                "Wilayah": "Nganjuk",
+                "JUMLAH - Total": 280,
+                "Laut - Non Pelabuhan": 0,
+                "Perairan Umum - Open Water": 280
+            },
+            {
+                "Wilayah": "Ngawi",
+                "JUMLAH - Total": 901,
+                "Laut - Non Pelabuhan": 0,
+                "Perairan Umum - Open Water": 901
+            },
+            {
+                "Wilayah": "Pacitan",
+                "JUMLAH - Total": 29686,
+                "Laut - Non Pelabuhan": 29271,
+                "Perairan Umum - Open Water": 415
+            },
+            {
+                "Wilayah": "Pamekasan",
+                "JUMLAH - Total": 19419,
+                "Laut - Non Pelabuhan": 19419,
+                "Perairan Umum - Open Water": 0
+            },
+            {
+                "Wilayah": "Pasuruan",
+                "JUMLAH - Total": 24757,
+                "Laut - Non Pelabuhan": 24512,
+                "Perairan Umum - Open Water": 245
+            },
+            {
+                "Wilayah": "Ponorogo",
+                "JUMLAH - Total": 31,
+                "Laut - Non Pelabuhan": 0,
+                "Perairan Umum - Open Water": 31
+            },
+            {
+                "Wilayah": "Probolinggo",
+                "JUMLAH - Total": 29403,
+                "Laut - Non Pelabuhan": 29231,
+                "Perairan Umum - Open Water": 171
+            },
+            {
+                "Wilayah": "Sampang",
+                "JUMLAH - Total": 16654,
+                "Laut - Non Pelabuhan": 16636,
+                "Perairan Umum - Open Water": 18
+            },
+            {
+                "Wilayah": "Sidoarjo",
+                "JUMLAH - Total": 16417,
+                "Laut - Non Pelabuhan": 15859,
+                "Perairan Umum - Open Water": 558
+            },
+            {
+                "Wilayah": "Situbondo",
+                "JUMLAH - Total": 18482,
+                "Laut - Non Pelabuhan": 18482,
+                "Perairan Umum - Open Water": 0
+            },
+            {
+                "Wilayah": "Sumenep",
+                "JUMLAH - Total": 51981,
+                "Laut - Non Pelabuhan": 51907,
+                "Perairan Umum - Open Water": 73
+            },
+            {
+                "Wilayah": "Trenggalek",
+                "JUMLAH - Total": 15619,
+                "Laut - Non Pelabuhan": 15595,
+                "Perairan Umum - Open Water": 24
+            },
+            {
+                "Wilayah": "Tuban",
+                "JUMLAH - Total": 33047,
+                "Laut - Non Pelabuhan": 32249,
+                "Perairan Umum - Open Water": 798
+            },
+            {
+                "Wilayah": "Tulungagung",
+                "JUMLAH - Total": 18243,
+                "Laut - Non Pelabuhan": 18223,
+                "Perairan Umum - Open Water": 20
+            }
+        ]
+    },
+    "volume_bulanan": [
+        {
+            "Uraian": "Laut",
+            "Januari": 631665803,
+            "Februari": 646934041,
+            "Maret": 851594360,
+            "April": 913341829,
+            "Mei": 828655949,
+            "Juni": 931676870,
+            "Juli": 850618620,
+            "Agustus": 928672662,
+            "September": 956434863,
+            "Oktober": 1371969651,
+            "November": 1194163065,
+            "Desember": 1319708041,
+            "Jumlah": 11425435754
+        },
+        {
+            "Uraian": "Perairan Umum Darat",
+            "Januari": 14181995,
+            "Februari": 13654574,
+            "Maret": 15010385,
+            "April": 15469293,
+            "Mei": 15904475,
+            "Juni": 17878373,
+            "Juli": 27250672,
+            "Agustus": 29239513,
+            "September": 26673084,
+            "Oktober": 23204775,
+            "November": 25938729,
+            "Desember": 20540765,
+            "Jumlah": 244946633
+        }
+    ],
+    "nilai_bulanan": [
+        {
+            "Uraian": "Laut",
+            "Januari": 38485,
+            "Februari": 38753,
+            "Maret": 45467,
+            "April": 53136,
+            "Mei": 47192,
+            "Juni": 52044,
+            "Juli": 51726,
+            "Agustus": 59577,
+            "September": 54950,
+            "Oktober": 54026,
+            "November": 45227,
+            "Desember": 45557,
+            "Jumlah": 586140
+        },
+        {
+            "Uraian": "Perairan Umum Darat",
+            "Januari": 747,
+            "Februari": 709,
+            "Maret": 781,
+            "April": 801,
+            "Mei": 834,
+            "Juni": 903,
+            "Juli": 1219,
+            "Agustus": 1349,
+            "September": 1330,
+            "Oktober": 1116,
+            "November": 1281,
+            "Desember": 1109,
+            "Jumlah": 12179
+        }
+    ],
+    "komoditas": [
+        {
+            "no": 1,
+            "komoditas": "Tongkol",
+            "volume": "70580.838",
+            "is_sub": 0,
+            "is_note": 0
+        },
+        {
+            "no": 1,
+            "komoditas": "Banyuwangi",
+            "volume": "5871.102",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 1,
+            "komoditas": "Lamongan",
+            "volume": "12852.07",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 1,
+            "komoditas": "Sumenep",
+            "volume": "8206.765",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 1,
+            "komoditas": "Trenggalek",
+            "volume": "8784.868",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 1,
+            "komoditas": "Tulungagung",
+            "volume": "10608.85",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 2,
+            "komoditas": "Lemuru",
+            "volume": "39535.52",
+            "is_sub": 0,
+            "is_note": 0
+        },
+        {
+            "no": 2,
+            "komoditas": "Banyuwangi",
+            "volume": "18965.06",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 2,
+            "komoditas": "Jember",
+            "volume": "8922.78",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 2,
+            "komoditas": "Malang",
+            "volume": "1709.57",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 2,
+            "komoditas": "Trenggalek",
+            "volume": "4465.13",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 2,
+            "komoditas": "Tulungagung",
+            "volume": "3389.58",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 3,
+            "komoditas": "Layang",
+            "volume": "30904.47",
+            "is_sub": 0,
+            "is_note": 0
+        },
+        {
+            "no": 3,
+            "komoditas": "Banyuwangi",
+            "volume": "5172.14",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 3,
+            "komoditas": "Jember",
+            "volume": "2463.8",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 3,
+            "komoditas": "Situbondo",
+            "volume": "2794.7",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 3,
+            "komoditas": "Sumenep",
+            "volume": "5086.12",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 3,
+            "komoditas": "Trenggalek",
+            "volume": "3901.17",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 4,
+            "komoditas": "Cakalang",
+            "volume": "16051.6",
+            "is_sub": 0,
+            "is_note": 0
+        },
+        {
+            "no": 4,
+            "komoditas": "Banyuwangi",
+            "volume": "284.1",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 4,
+            "komoditas": "Malang",
+            "volume": "3282.48",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 4,
+            "komoditas": "Pacitan",
+            "volume": "942.95",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 4,
+            "komoditas": "Sampang",
+            "volume": "2730",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 4,
+            "komoditas": "Sumenep",
+            "volume": "1987.77",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 5,
+            "komoditas": "Rajungan",
+            "volume": "10976.48",
+            "is_sub": 0,
+            "is_note": 0
+        },
+        {
+            "no": 5,
+            "komoditas": "Bangkalan",
+            "volume": "3965.9",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 5,
+            "komoditas": "Banyuwangi",
+            "volume": "969.9",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 5,
+            "komoditas": "Pasuruan",
+            "volume": "784.9",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 5,
+            "komoditas": "Probolinggo",
+            "volume": "1912.7",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 5,
+            "komoditas": "Sampang",
+            "volume": "817.6",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 6,
+            "komoditas": "Tuna",
+            "volume": "10294.32",
+            "is_sub": 0,
+            "is_note": 0
+        },
+        {
+            "no": 6,
+            "komoditas": "Banyuwangi",
+            "volume": "1708.51",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 6,
+            "komoditas": "Malang",
+            "volume": "5840.33",
+            "is_sub": 1,
+            "is_note": 0
+        },
+        {
+            "no": 6,
+            "komoditas": "Pacitan",
+            "volume": "2030.44",
+            "is_sub": 1,
+            "is_note": 0
+        }
+    ]

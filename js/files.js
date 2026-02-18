@@ -1,837 +1,336 @@
-// File Manager JavaScript
-const API_BASE_URL = './api';
+/* files.js — clean navy header, tidy table, dblclick open (Office viewer), robust API base */
+const API_BASE_URL = (()=>{
+  try {
+    const here = window.location.pathname;      // e.g. /samudera/files.php
+    return here.replace(/\/[^\/]*$/, '') + '/api';
+  } catch { return './api'; }
+})();
 
-document.addEventListener('DOMContentLoaded', function() {
-    initializeFileManager();
-    setupSidebar();
-    setupUploadModal();
-    loadCategories();
-    loadRegions();
+const PAGE_SIZE = 10;
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+let applyFilters = false;
+let currentData  = [];
+let selectedIds  = new Set();
+let selectMode   = false;
+let page         = 1;
+
+// -------- util --------
+function fmtBytes(n){ if (n == null) return ''; const u=['B','KB','MB','GB','TB']; let i=0; let x=Number(n); while(x>=1024 && i<u.length-1){ x/=1024; i++; } return `${x.toFixed(2)} ${u[i]}`; }
+function labelBidang(v){ if (!v) return '—'; const m={tangkap:'Perikanan Tangkap', budidaya:'Perikanan Budidaya', kpp:'KPP', pengolahan:'Pengolahan & Pemasaran', ekspor:'Ekspor Perikanan', investasi:'Investasi KP'}; return m[v] || v; }
+function debounce(fn, ms=250){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+function getExt(name=''){ const p=name.toLowerCase().split('.'); return p.length>1?p.pop():''; }
+
+// -------- data --------
+async function fetchFiles(){
+  const p = new URLSearchParams();
+  if (applyFilters){
+    const s = $('#search-input')?.value ?? '';
+    const b = $('#bidang-filter')?.value || '';
+    const t = $('#tahun-filter')?.value?.trim() || '';
+    if (s.trim()) p.set('search', s);
+    if (b) p.set('bidang', b);
+    if (t) p.set('tahun', t);
+  }
+  p.set('_', Date.now());
+  const r = await fetch(`${API_BASE_URL}/files.php?action=list&${p.toString()}`, {credentials:'same-origin'});
+  const j = await r.json();
+  if (!j.success) throw new Error(j.message || 'Gagal memuat');
+  return j.data || [];
+}
+
+// -------- open / preview --------
+async function openFile(id, filename){
+  try{
+    const res = await fetch(`${API_BASE_URL}/files.php?action=download&id=${encodeURIComponent(id)}`);
+    const j = await res.json();
+    if(!j.success) throw new Error(j.message||'Gagal mengambil URL');
+    const fileUrl = new URL(j.url, location.origin).href;
+    const name = filename || j.filename || '';
+    const ext  = getExt(name);
+
+    const office = ['doc','docx','xls','xlsx','ppt','pptx'];
+    if (office.includes(ext)){
+      window.open(`https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(fileUrl)}`, '_blank');
+      return;
+    }
+    window.open(fileUrl, '_blank'); // pdf,img,txt,csv,dll
+  }catch(e){ alert(e.message); }
+}
+
+// -------- render --------
+function updateBulkBar(){
+  const bar = $('#bulkbar');
+  const count = selectedIds.size;
+  $('#bulk-count').textContent = String(count);
+  bar.classList.toggle('show', count>0);
+}
+
+function buildPager(total){
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (page > totalPages) page = totalPages;
+
+  const wrap = $('#pager');
+  const btn = (label, p, disabled=false, active=false, title='')=>{
+    const b = document.createElement('button');
+    b.className = 'page-btn' + (active?' active':'');
+    b.textContent = label;
+    if (title) b.title = title;
+    b.disabled = disabled;
+    b.onclick = ()=>{ page = p; render(currentData); };
+    return b;
+  };
+
+  wrap.innerHTML = '';
+  wrap.append(btn('<<', 1, page===1, false, 'Halaman pertama'),
+              btn('<', Math.max(1,page-1), page===1, false, 'Sebelumnya'));
+
+  const show = 5;
+  let start = Math.max(1, page - Math.floor(show/2));
+  let end   = Math.min(totalPages, start + show - 1);
+  start = Math.max(1, end - show + 1);
+  for(let i=start;i<=end;i++) wrap.append(btn(String(i), i, false, i===page));
+
+  wrap.append(btn('>',  Math.min(totalPages,page+1), page===totalPages, false, 'Berikutnya'),
+              btn('>>', totalPages, page===totalPages, false, 'Halaman terakhir'));
+}
+
+function render(rows){
+  const tb = $('#files-table tbody');
+
+  const total = rows.length;
+  const start = (page-1)*PAGE_SIZE;
+  const slice = rows.slice(start, start + PAGE_SIZE);
+
+  tb.innerHTML = slice.map((r, idx)=>`
+    <tr data-id="${r.id}" data-name="${r.name}">
+      <td style="text-align:center; font-weight:800">${start+idx+1}</td>
+      <td><div class="font-semibold">${r.name}</div></td>
+      <td>${labelBidang(r.bidang)}</td>
+      <td>${r.tahun || ''}</td>
+      <td>${fmtBytes(r.size)}</td>
+      <td>${new Date(r.modified).toLocaleString('id-ID')}</td>
+      <td style="text-align:right; display:flex; gap:6px; justify-content:flex-end">
+        <button class="btn btn-icon" data-dl="${r.id}" type="button" title="Download"><i class="fa-solid fa-download"></i></button>
+        <button class="btn btn-icon btn-danger" data-del="${r.id}" type="button" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+      </td>
+    </tr>
+  `).join('');
+
+  // selection & double click
+  $$('#files-table tbody tr').forEach(tr=>{
+    const id   = String(tr.dataset.id);
+    const name = tr.dataset.name || '';
+
+    tr.onclick = e=>{
+      if (e.target.closest('[data-dl],[data-del]')) return;
+      if (!selectMode) return;
+      tr.classList.toggle('sel');
+      if (tr.classList.contains('sel')) selectedIds.add(id); else selectedIds.delete(id);
+      updateBulkBar();
+    };
+    tr.ondblclick = e=>{
+      if (e.target.closest('[data-dl],[data-del]')) return;
+      if (selectMode) return;
+      openFile(id, name);
+    };
+  });
+
+  // actions
+  tb.querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>downloadFile(b.dataset.dl));
+  tb.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>deleteFile(b.dataset.del));
+
+  // hint
+  if (applyFilters){
+    const b = $('#bidang-filter')?.value || '';
+    const t = $('#tahun-filter')?.value?.trim();
+    $('#active-hint').textContent = `Filter aktif: ${(b?labelBidang(b)+', ':'')}${t||'semua tahun'} — ${total} file`;
+  } else {
+    const years = rows.map(r=>parseInt(r.tahun||0)).filter(n=>n>0);
+    $('#active-hint').textContent = (years.length? `Terbaru: ${Math.max(...years)}` : 'Semua data') + ` — ${total} file`;
+  }
+
+  buildPager(total);
+  updateBulkBar();
+}
+
+async function load(){
+  try{ currentData = await fetchFiles(); page = 1; render(currentData); }
+  catch(e){ console.error(e); alert('Gagal memuat daftar file.'); }
+}
+
+// -------- actions --------
+async function downloadFile(id){
+  try{
+    const res = await fetch(`${API_BASE_URL}/files.php?action=download&id=${encodeURIComponent(id)}`);
+    const j = await res.json();
+    if(!j.success) throw new Error(j.message||'Download error');
+    const a=document.createElement('a'); a.href=j.url; a.download=j.filename;
+    document.body.appendChild(a); a.click(); a.remove();
+  }catch(e){ alert(e.message); }
+}
+async function deleteFile(id){
+  if(!confirm('Hapus file ini?')) return;
+  try{
+    const fd = new FormData(); fd.append('action','delete'); fd.append('id',id);
+    const res = await fetch(`${API_BASE_URL}/files.php`, {method:'POST', body:fd});
+    const j = await res.json(); if(!j.success) throw new Error(j.message||'Gagal hapus');
+    selectedIds.delete(String(id));
+    await load();
+  }catch(e){ alert(e.message); }
+}
+async function bulkDelete(){
+  if (selectedIds.size === 0) return;
+  if (!confirm(`Hapus ${selectedIds.size} file terpilih?`)) return;
+  try{
+    for (const id of Array.from(selectedIds)){
+      const fd = new FormData(); fd.append('action','delete'); fd.append('id', id);
+      const res = await fetch(`${API_BASE_URL}/files.php`, {method:'POST', body:fd});
+      const j = await res.json();
+      if (!j.success) throw new Error(j.message||`Gagal hapus id ${id}`);
+      selectedIds.delete(id);
+    }
+    await load();
+  }catch(e){ alert(e.message); }
+}
+
+// -------- toolbar & filter --------
+function setupToolbar(){
+  $('#btn-toggle-select')?.addEventListener('click', ()=>{
+    selectMode = !selectMode;
+    $('#btn-toggle-select').classList.toggle('btn-ghost', selectMode);
+    $('#btn-toggle-select').title = selectMode ? 'Mode pilih aktif (klik baris untuk memilih)' : 'Mode pilih';
+    if (!selectMode){ selectedIds.clear(); $$('#files-table tbody tr.sel').forEach(tr=> tr.classList.remove('sel')); }
+    updateBulkBar();
+  });
+
+  $('#btn-reset')?.addEventListener('click', ()=>{
+    if($('#search-input')) $('#search-input').value='';
+    if($('#bidang-filter')) $('#bidang-filter').value='';
+    if($('#tahun-filter'))  $('#tahun-filter').value='';
+    selectedIds.clear(); selectMode=false;
+    applyFilters=false; page=1;
+    $('#btn-toggle-select')?.classList.remove('btn-ghost');
+    load();
+  });
+
+  $('#btn-bulk-delete')?.addEventListener('click', bulkDelete);
+  $('#btn-bulk-cancel')?.addEventListener('click', ()=>{
+    selectedIds.clear(); updateBulkBar();
+    $$('#files-table tbody tr.sel').forEach(tr=> tr.classList.remove('sel'));
+  });
+
+  const onSearch = debounce(()=>{
+    const q = $('#search-input')?.value ?? '';
+    applyFilters = (q.trim().length>0) || ($('#bidang-filter')?.value || '') || ($('#tahun-filter')?.value?.trim() || '');
+    page = 1;
+    load();
+  }, 220);
+  $('#search-input')?.addEventListener('input', onSearch);
+
+  $('#bidang-filter')?.addEventListener('change', ()=>{ applyFilters = true; page=1; load(); });
+  $('#tahun-filter')?.addEventListener('input',  debounce(()=>{ applyFilters = true; page=1; load(); }, 220));
+}
+
+// -------- init --------
+document.addEventListener('DOMContentLoaded', ()=>{
+  if($('#bidang-filter')) $('#bidang-filter').value='';
+  if($('#tahun-filter'))  $('#tahun-filter').value='';
+  setupToolbar();
+  setupUpload(); // upload modal
+  load();
 });
 
-function initializeFileManager() {
-    // Load files from API
-    loadFiles();
-    
-    // Setup event listeners
-    setupEventListeners();
-    
-    // Initialize DataTable (if files exist)
-    initializeDataTable();
-}
+/* ===== Upload modal (ringkas) ===== */
+function setupUpload(){
+  const modal     = $('#upload-modal'); if (!modal) return;
+  const bidangSel = $('#modal-bidang');
+  const tahunInp  = $('#modal-tahun');
+  const pickerBtn = $('#btn-choose');
+  const fileInput = $('#modal-files');
+  const dropzone  = $('#dropzone');
+  const pillList  = $('#pill-list');
+  const submitBtn = $('#btn-upload-submit');
+  const badgeTahun  = $('#badge-tahun');
+  const badgeBidang = $('#badge-bidang');
 
-function setupSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const mainContent = document.getElementById('main-content');
-    const mobileToggle = document.getElementById('mobile-menu-toggle');
-    const sidebarToggle = document.getElementById('sidebar-toggle');
-    
-    // Mobile menu toggle
-    if (mobileToggle) {
-        mobileToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('sidebar-hidden');
-        });
-    }
-    
-    // Sidebar close button
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', function() {
-            sidebar.classList.add('sidebar-hidden');
-        });
-    }
-    
-    // Close sidebar when clicking outside on mobile
-    document.addEventListener('click', function(event) {
-        if (window.innerWidth < 1024) {
-            if (!sidebar.contains(event.target) && !mobileToggle.contains(event.target)) {
-                sidebar.classList.add('sidebar-hidden');
-            }
-        }
-    });
-    
-    // Handle window resize
-    window.addEventListener('resize', function() {
-        if (window.innerWidth >= 1024) {
-            sidebar.classList.remove('sidebar-hidden');
-        }
-    });
-}
+  const files = [];
+  const syncBadges = ()=>{
+    badgeTahun.textContent  = tahunInp.value || '—';
+    const txt = bidangSel.options[bidangSel.selectedIndex]?.text || '—';
+    badgeBidang.textContent = txt;
+  };
+  bidangSel.addEventListener('change', syncBadges);
+  tahunInp .addEventListener('input',  syncBadges);
 
-function loadFiles() {
-    fetch(`${API_BASE_URL}/files.php?action=list`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (data.data.length === 0) {
-                    showEmptyState();
-                } else {
-                    showFileTable(data.data);
-                }
-            } else {
-                console.error('Error loading files:', data.message);
-                showEmptyState();
-            }
-        })
-        .catch(error => {
-            console.error('Error loading files:', error);
-            showEmptyState();
-        });
-}
-
-function showEmptyState() {
-    document.getElementById('empty-state').classList.remove('hidden');
-    document.getElementById('file-table-container').classList.add('hidden');
-}
-
-function showFileTable(files) {
-    document.getElementById('empty-state').classList.add('hidden');
-    document.getElementById('file-table-container').classList.remove('hidden');
-    
-    // Populate table with files
-    populateFileTable(files);
-}
-
-function populateFileTable(files) {
-    const tbody = document.querySelector('#files-table tbody');
-    tbody.innerHTML = '';
-    
-    files.forEach(file => {
-        const row = createFileRow(file);
-        tbody.appendChild(row);
-    });
-    
-    // Initialize or reinitialize DataTable
-    if ($.fn.DataTable.isDataTable('#files-table')) {
-        $('#files-table').DataTable().destroy();
-    }
-    
-    $('#files-table').DataTable({
-        responsive: true,
-        pageLength: 25,
-        order: [[5, 'desc']], // Sort by upload date descending
-        language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json'
-        }
-    });
-}
-
-function createFileRow(file) {
-    const row = document.createElement('tr');
-    row.className = 'file-item';
-    
-    const favoriteIcon = file.is_favorite ? 'fas fa-heart text-red-500' : 'far fa-heart text-gray-400';
-    const formattedSize = formatFileSize(file.size);
-    const formattedDate = formatDate(file.upload_date);
-    
-    row.innerHTML = `
-        <td class="px-6 py-4 whitespace-nowrap">
-            <div class="flex items-center">
-                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-file text-blue-600"></i>
-                </div>
-                <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-900">${file.title}</div>
-                    <div class="text-sm text-gray-500">${file.filename}</div>
-                </div>
-            </div>
-        </td>
-        <td class="px-6 py-4 text-sm text-gray-900">
-            ${file.description.substring(0, 100)}${file.description.length > 100 ? '...' : ''}
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formattedSize}</td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${file.category}</td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${file.uploader}</td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formattedDate}</td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-            <div class="flex space-x-2">
-                <button onclick="downloadFile(${file.id})" class="text-blue-600 hover:text-blue-900" title="Download">
-                    <i class="fas fa-download"></i>
-                </button>
-                <button onclick="toggleFavorite(${file.id})" class="hover:text-red-600" title="Favorit">
-                    <i class="${favoriteIcon}"></i>
-                </button>
-                <button onclick="archiveFile(${file.id})" class="text-yellow-600 hover:text-yellow-900" title="Arsip">
-                    <i class="fas fa-archive"></i>
-                </button>
-                <button onclick="editFile(${file.id})" class="text-green-600 hover:text-green-900" title="Edit">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button onclick="deleteFile(${file.id})" class="text-red-600 hover:text-red-900" title="Hapus">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        </td>
-    `;
-    
-    return row;
-}
-    });
-}
-
-function createFileRow(file) {
-    const row = document.createElement('tr');
-    row.className = 'file-item hover:bg-gray-50';
-    
-    const fileExtension = file.filename.split('.').pop().toLowerCase();
-    
-    row.innerHTML = `
-        <td class="px-6 py-4 whitespace-nowrap">
-            <div class="flex items-center">
-                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <i class="fas fa-file-${getFileIcon(fileExtension)} text-blue-600"></i>
-                </div>
-                <div>
-                    <div class="text-sm font-medium text-gray-900">${file.title}</div>
-                    <div class="text-sm text-gray-500">${file.description || 'Tidak ada deskripsi'}</div>
-                </div>
-            </div>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${getBidangColor(file.category.toLowerCase())}-100 text-${getBidangColor(file.category.toLowerCase())}-800">
-                ${file.category}
-            </span>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${file.region}</td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatFileSize(file.size)}</td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatDate(file.created_at)}</td>
-        <td class="px-6 py-4 whitespace-nowrap">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                Aktif
-            </span>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-            <div class="flex items-center space-x-2">
-                <button class="text-blue-600 hover:text-blue-900" onclick="downloadFile('${file.id}')">
-                    <i class="fas fa-download"></i>
-                </button>
-                <button class="text-yellow-600 hover:text-yellow-900" onclick="toggleFavorite('${file.id}')">
-                    <i class="fas fa-star${file.is_favorite ? '' : '-o'}"></i>
-                </button>
-                <button class="text-gray-600 hover:text-gray-900" onclick="viewFileDetails('${file.id}')">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="text-red-600 hover:text-red-900" onclick="archiveFile('${file.id}')">
-                    <i class="fas fa-archive"></i>
-                </button>
-            </div>
-        </td>
-    `;
-    
-    return row;
-}
-
-function initializeDataTable() {
-    // Initialize DataTables if table exists and has data
-    const table = document.getElementById('files-table');
-    if (table && !document.getElementById('empty-state').classList.contains('hidden')) {
-        return;
-    }
-    
-    // DataTables configuration would go here
-    // Currently not initialized since no data exists
-}
-
-function setupEventListeners() {
-    // Upload buttons
-    const uploadBtn = document.getElementById('upload-file-btn');
-    const uploadEmptyBtn = document.getElementById('upload-file-empty-btn');
-    
-    if (uploadBtn) {
-        uploadBtn.addEventListener('click', function() {
-            showUploadModal();
-        });
-    }
-    
-    if (uploadEmptyBtn) {
-        uploadEmptyBtn.addEventListener('click', function() {
-            showUploadModal();
-        });
-    }
-    
-    // View toggle buttons
-    const gridView = document.getElementById('grid-view');
-    const listView = document.getElementById('list-view');
-    
-    if (gridView) {
-        gridView.addEventListener('click', function() {
-            // Switch to grid view
-            gridView.classList.add('text-blue-600');
-            gridView.classList.remove('text-gray-400');
-            listView.classList.add('text-gray-400');
-            listView.classList.remove('text-blue-600');
-        });
-    }
-    
-    if (listView) {
-        listView.addEventListener('click', function() {
-            // Switch to list view
-            listView.classList.add('text-blue-600');
-            listView.classList.remove('text-gray-400');
-            gridView.classList.add('text-gray-400');
-            gridView.classList.remove('text-blue-600');
-        });
-    }
-    
-    // Search and filter inputs
-    const searchInput = document.getElementById('search-input');
-    const bidangFilter = document.getElementById('bidang-filter');
-    const kabupatenFilter = document.getElementById('kabupaten-filter');
-    const statusFilter = document.getElementById('status-filter');
-    
-    [searchInput, bidangFilter, kabupatenFilter, statusFilter].forEach(element => {
-        if (element) {
-            element.addEventListener('change', function() {
-                filterFiles();
-            });
-            element.addEventListener('keyup', function() {
-                if (element === searchInput) {
-                    filterFiles();
-                }
-            });
-        }
-    });
-}
-
-function setupUploadModal() {
-    const modal = document.getElementById('upload-modal');
-    const closeModal = document.getElementById('close-modal');
-    const cancelUpload = document.getElementById('cancel-upload');
-    const uploadForm = document.getElementById('upload-form');
-    
-    // Close modal events
-    [closeModal, cancelUpload].forEach(button => {
-        if (button) {
-            button.addEventListener('click', function() {
-                hideUploadModal();
-            });
-        }
-    });
-    
-    // Close modal when clicking outside
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                hideUploadModal();
-            }
-        });
-    }
-    
-    // Handle form submission
-    if (uploadForm) {
-        uploadForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            handleFileUpload();
-        });
-    }
-}
-
-function showUploadModal() {
-    const modal = document.getElementById('upload-modal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-    }
-}
-
-function hideUploadModal() {
-    const modal = document.getElementById('upload-modal');
-    if (modal) {
-        modal.classList.add('hidden');
-        document.body.style.overflow = 'auto';
-        
-        // Reset form
-        const form = document.getElementById('upload-form');
-        if (form) {
-            form.reset();
-        }
-    }
-}
-
-function handleFileUpload() {
-    // Get form data
-    const fileInput = document.getElementById('file-input');
-    const title = document.getElementById('file-title').value;
-    const description = document.getElementById('file-description').value;
-    const bidang = document.getElementById('file-bidang').value;
-    const kabupaten = document.getElementById('file-kabupaten').value;
-    const year = document.getElementById('file-year').value;
-    const month = document.getElementById('file-month').value;
-    const uploaderName = document.getElementById('uploader-name').value || 'Anonymous';
-    const uploaderEmail = document.getElementById('uploader-email').value || '';
-    
-    // Validate required fields
-    if (!fileInput.files[0] || !title || !bidang || !kabupaten) {
-        alert('Mohon lengkapi semua field yang wajib diisi');
-        return;
-    }
-    
-    // Validate file type
-    const file = fileInput.files[0];
-    const allowedTypes = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'jpg', 'jpeg', 'png'];
-    const fileExtension = file.name.split('.').pop().toLowerCase();
-    
-    if (!allowedTypes.includes(fileExtension)) {
-        alert('Format file tidak didukung. Gunakan: PDF, DOC, DOCX, XLS, XLSX, ZIP, JPG, JPEG, PNG');
-        return;
-    }
-    
-    // Validate file size (50MB)
-    if (file.size > 50 * 1024 * 1024) {
-        alert('Ukuran file maksimal 50MB');
-        return;
-    }
-    
-    // Create FormData for file upload
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', title);
-    formData.append('description', description);
-    formData.append('category_id', bidang);
-    formData.append('region_id', kabupaten);
-    formData.append('uploader_name', uploaderName);
-    formData.append('uploader_email', uploaderEmail);
-    formData.append('upload_date', `${year}-${month.padStart(2, '0')}-01`);
-    formData.append('tags', '');
-    
-    // Show loading state
-    const submitButton = document.querySelector('#upload-form button[type="submit"]');
-    const originalText = submitButton.textContent;
-    submitButton.textContent = 'Mengunggah...';
-    submitButton.disabled = true;
-    
-    // Upload file via API
-    fetch(`${API_BASE_URL}/upload.php`, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('File berhasil diunggah!');
-            hideUploadModal();
-            loadFiles(); // Reload file list
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Upload error:', error);
-        alert('Terjadi kesalahan saat mengunggah file');
-    })
-    .finally(() => {
-        // Reset button state
-        submitButton.textContent = originalText;
-        submitButton.disabled = false;
-    });
-}
-
-function loadCategories() {
-    fetch(`${API_BASE_URL}/files.php?action=categories`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const categorySelect = document.getElementById('file-bidang');
-                const filterSelect = document.getElementById('bidang-filter');
-                
-                if (categorySelect) {
-                    categorySelect.innerHTML = '<option value="">Pilih Bidang</option>';
-                    data.data.forEach(category => {
-                        categorySelect.innerHTML += `<option value="${category.id}">${category.display_name}</option>`;
-                    });
-                }
-                
-                if (filterSelect) {
-                    filterSelect.innerHTML = '<option value="">Semua Bidang</option>';
-                    data.data.forEach(category => {
-                        filterSelect.innerHTML += `<option value="${category.name}">${category.display_name}</option>`;
-                    });
-                }
-            }
-        })
-        .catch(error => console.error('Error loading categories:', error));
-}
-
-function loadRegions() {
-    fetch(`${API_BASE_URL}/files.php?action=regions`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const regionSelect = document.getElementById('file-kabupaten');
-                const filterSelect = document.getElementById('kabupaten-filter');
-                
-                if (regionSelect) {
-                    regionSelect.innerHTML = '<option value="">Pilih Kabupaten/Kota</option>';
-                    data.data.forEach(region => {
-                        regionSelect.innerHTML += `<option value="${region.id}">${region.name}</option>`;
-                    });
-                }
-                
-                if (filterSelect) {
-                    filterSelect.innerHTML = '<option value="">Semua Wilayah</option>';
-                    data.data.forEach(region => {
-                        filterSelect.innerHTML += `<option value="${region.id}">${region.name}</option>`;
-                    });
-                }
-            }
-        })
-        .catch(error => console.error('Error loading regions:', error));
-}
-
-function filterFiles() {
-    // Get filter values
-    const search = document.getElementById('search-input').value;
-    const bidang = document.getElementById('bidang-filter').value;
-    const kabupaten = document.getElementById('kabupaten-filter').value;
-    const status = document.getElementById('status-filter').value;
-    
-    // Build query parameters
-    const params = new URLSearchParams();
-    if (search) params.append('search', search);
-    if (bidang) params.append('category', bidang);
-    if (kabupaten) params.append('region', kabupaten);
-    
-    // Fetch filtered files
-    fetch(`${API_BASE_URL}/files.php?action=list&${params.toString()}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (data.data.length === 0) {
-                    showEmptyState();
-                } else {
-                    showFileTable(data.data);
-                }
-            }
-        })
-        .catch(error => console.error('Error filtering files:', error));
-}
-
-// File action functions
-function downloadFile(fileId) {
-    // Open download URL in new window/tab
-    window.open(`${API_BASE_URL}/download.php?id=${fileId}`, '_blank');
-}
-
-function toggleFavorite(fileId) {
-    console.log('Toggling favorite for file:', fileId);
-    // In a real application, this would toggle favorite status
-}
-
-function viewFileDetails(fileId) {
-    console.log('Viewing file details:', fileId);
-    // In a real application, this would show file details modal
-}
-
-function archiveFile(fileId) {
-    if (confirm('Apakah Anda yakin ingin mengarsipkan file ini?')) {
-        console.log('Archiving file:', fileId);
-        // In a real application, this would archive the file
-    }
-}
-
-// Utility functions
-function getFileIcon(type) {
-    const icons = {
-        'pdf': 'pdf',
-        'doc': 'word',
-        'docx': 'word',
-        'xls': 'excel',
-        'xlsx': 'excel',
-        'zip': 'archive',
-        'jpg': 'image',
-        'jpeg': 'image',
-        'png': 'image'
-    };
-    return icons[type] || 'file';
-}
-
-function getBidangColor(bidang) {
-    const colors = {
-        'tangkap': 'blue',
-        'budidaya': 'green',
-        'kpp': 'cyan',
-        'pengolahan': 'orange',
-        'ekspor': 'purple'
-    };
-    return colors[bidang] || 'gray';
-}
-
-function getBidangName(bidang) {
-    const names = {
-        'tangkap': 'Perikanan Tangkap',
-        'budidaya': 'Perikanan Budidaya',
-        'kpp': 'KPP',
-        'pengolahan': 'Pengolahan & Pemasaran',
-        'ekspor': 'Ekspor Perikanan'
-    };
-    return names[bidang] || bidang;
-}
-
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-function formatDate(dateString) {
-    return new Intl.DateTimeFormat('id-ID', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    }).format(new Date(dateString));
-}
-
-
-
-// File action functions
-function downloadFile(fileId) {
-    fetch(`${API_BASE_URL}/files.php?action=download&id=${fileId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Create download link
-                const link = document.createElement('a');
-                link.href = data.file_path;
-                link.download = data.original_filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                showNotification('File berhasil didownload', 'success');
-                loadFiles(); // Refresh to update download count
-            } else {
-                showNotification('Error: ' + data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error downloading file:', error);
-            showNotification('Terjadi kesalahan saat mendownload file', 'error');
-        });
-}
-
-function toggleFavorite(fileId) {
-    const formData = new FormData();
-    formData.append('action', 'favorite');
-    formData.append('file_id', fileId);
-    
-    fetch(`${API_BASE_URL}/files.php`, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Status favorit berhasil diperbarui', 'success');
-            loadFiles(); // Refresh to update favorite status
-        } else {
-            showNotification('Error: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error toggling favorite:', error);
-        showNotification('Terjadi kesalahan saat memperbarui favorit', 'error');
-    });
-}
-
-function archiveFile(fileId) {
-    if (confirm('Apakah Anda yakin ingin mengarsipkan file ini?')) {
-        const formData = new FormData();
-        formData.append('action', 'archive');
-        formData.append('file_id', fileId);
-        
-        fetch(`${API_BASE_URL}/files.php`, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showNotification('File berhasil diarsipkan', 'success');
-                loadFiles(); // Refresh file list
-            } else {
-                showNotification('Error: ' + data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error archiving file:', error);
-            showNotification('Terjadi kesalahan saat mengarsipkan file', 'error');
-        });
-    }
-}
-
-function editFile(fileId) {
-    // Get current file data first
-    fetch(`${API_BASE_URL}/files.php?action=list`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const file = data.data.find(f => f.id == fileId);
-                if (file) {
-                    showEditModal(file);
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Error getting file data:', error);
-        });
-}
-
-function deleteFile(fileId) {
-    if (confirm('Apakah Anda yakin ingin menghapus file ini? Tindakan ini tidak dapat dibatalkan.')) {
-        const formData = new FormData();
-        formData.append('action', 'delete');
-        formData.append('file_id', fileId);
-        
-        fetch(`${API_BASE_URL}/files.php`, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showNotification('File berhasil dihapus', 'success');
-                loadFiles(); // Refresh file list
-            } else {
-                showNotification('Error: ' + data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error deleting file:', error);
-            showNotification('Terjadi kesalahan saat menghapus file', 'error');
-        });
-    }
-}
-
-function showEditModal(file) {
-    // Create edit modal HTML
-    const modalHTML = `
-        <div id="edit-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 z-50">
-            <div class="flex items-center justify-center min-h-screen p-4">
-                <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
-                    <div class="p-6 border-b border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-semibold text-gray-900">Edit File</h3>
-                            <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <form id="edit-form" class="p-6">
-                        <div class="mb-4">
-                            <label for="edit-title" class="block text-sm font-medium text-gray-700 mb-2">Judul</label>
-                            <input type="text" id="edit-title" name="title" value="${file.title}" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        
-                        <div class="mb-4">
-                            <label for="edit-description" class="block text-sm font-medium text-gray-700 mb-2">Deskripsi</label>
-                            <textarea id="edit-description" name="description" rows="3" 
-                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">${file.description}</textarea>
-                        </div>
-                        
-                        <div class="mb-6">
-                            <label for="edit-tags" class="block text-sm font-medium text-gray-700 mb-2">Tags (pisahkan dengan koma)</label>
-                            <input type="text" id="edit-tags" name="tags" value="${file.tags ? file.tags.join(', ') : ''}" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        
-                        <div class="flex justify-end space-x-4">
-                            <button type="button" onclick="closeEditModal()" class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg">
-                                Batal
-                            </button>
-                            <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-                                Simpan
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+  function drawList(){
+    pillList.innerHTML = '';
+    files.forEach((item, i)=>{
+      const f = item.file;
+      const row = document.createElement('div');
+      row.className='filepill';
+      row.innerHTML = `
+        <div style="width:14px"></div>
+        <div>
+          <div class="nm">${f.name}</div>
+          <div class="meta">${fmtBytes(f.size)}</div>
+          <div class="progress"><div class="bar" style="width:${item.progress||0}%"></div></div>
         </div>
-    `;
-    
-    // Add modal to page
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
-    // Setup form submission
-    document.getElementById('edit-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        submitEditForm(file.id);
+        <div class="act"><button class="btn btn-danger btn-sm" type="button" title="hapus"><i class="fa-solid fa-xmark"></i></button></div>
+      `;
+      row.querySelector('.btn-danger').onclick = ()=>{ files.splice(i,1); drawList(); };
+      pillList.appendChild(row);
     });
-}
+  }
+  function addFiles(list){ Array.from(list||[]).forEach(f=> files.push({file:f, progress:0})); drawList(); }
 
-function closeEditModal() {
-    const modal = document.getElementById('edit-modal');
-    if (modal) {
-        modal.remove();
+  pickerBtn.addEventListener('click', ()=> fileInput.click());
+  fileInput.addEventListener('change', e=> addFiles(e.target.files));
+
+  ;['dragenter','dragover'].forEach(ev=>{
+    dropzone.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); dropzone.classList.add('drag'); });
+  });
+  ;['dragleave','drop'].forEach(ev=>{
+    dropzone.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); dropzone.classList.remove('drag'); });
+  });
+  dropzone.addEventListener('drop', e=> addFiles(e.dataTransfer.files));
+  dropzone.addEventListener('click', e=>{ if (e.target === dropzone) fileInput.click(); });
+
+  submitBtn.addEventListener('click', async ()=>{
+    const bidang = bidangSel.value;
+    const tahun  = tahunInp.value.trim();
+    if (!bidang || !tahun){ alert('Pilih Bidang dan Tahun terlebih dulu.'); return; }
+    if (!/^\d{4}$/.test(tahun)){ alert('Tahun harus 4 digit.'); return; }
+    if (!files.length){ alert('Pilih minimal satu file.'); return; }
+
+    for (let i=0;i<files.length;i++){
+      const item = files[i];
+      const f = item.file;
+      await new Promise((resolve,reject)=>{
+        const fd = new FormData();
+        fd.append('bidang', bidang);
+        fd.append('tahun',  tahun);
+        fd.append('files',  f);
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${API_BASE_URL}/upload.php`, true);
+        xhr.responseType = 'json';
+        xhr.upload.onprogress = e=>{
+          if (e.lengthComputable){
+            item.progress = Math.round(e.loaded/e.total*100);
+            const bar = pillList.children[i]?.querySelector('.bar'); if (bar) bar.style.width = item.progress + '%';
+          }
+        };
+        xhr.onload = ()=>{ const res = xhr.response || {}; if (!res.success) return reject(new Error(res.message || 'Upload gagal')); resolve(); };
+        xhr.onerror = ()=> reject(new Error('Network error'));
+        xhr.send(fd);
+      }).catch(err=> alert(`${f.name}: ${err.message}`));
     }
-}
 
-function submitEditForm(fileId) {
-    const formData = new FormData();
-    formData.append('action', 'edit');
-    formData.append('file_id', fileId);
-    formData.append('title', document.getElementById('edit-title').value);
-    formData.append('description', document.getElementById('edit-description').value);
-    formData.append('tags', document.getElementById('edit-tags').value);
-    
-    fetch(`${API_BASE_URL}/files.php`, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('File berhasil diperbarui', 'success');
-            closeEditModal();
-            loadFiles(); // Refresh file list
-        } else {
-            showNotification('Error: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error updating file:', error);
-        showNotification('Terjadi kesalahan saat memperbarui file', 'error');
-    });
+    applyFilters = false;
+    await load();
+    $('#upload-modal').classList.remove('show');
+    document.body.style.overflow='auto';
+    files.length=0; drawList(); fileInput.value='';
+  });
 }
-
-// Utility functions
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('id-ID', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    }).format(date);
-}
-
-function showNotification(message, type = 'info') {
-    // Simple notification system
-    const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
-        type === 'success' ? 'bg-green-500 text-white' :
-        type === 'error' ? 'bg-red-500 text-white' :
-        'bg-blue-500 text-white'
-    }`;
-    notification.textContent = message;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
-

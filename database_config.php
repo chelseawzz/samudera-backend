@@ -10,11 +10,11 @@ class DatabaseConfig {
     public static function getConnection() {
         if (self::$connection === null) {
             try {
-                $host = getenv("MYSQLHOST");
-                $port = getenv("MYSQLPORT") ?: "3306";
-                $dbname = getenv("MYSQLDATABASE");
-                $user = getenv("MYSQLUSER");
-                $pass = getenv("MYSQLPASSWORD");
+                $host    = getenv("MYSQLHOST");
+                $port    = getenv("MYSQLPORT") ?: "3306";
+                $dbname  = getenv("MYSQLDATABASE");
+                $user    = getenv("MYSQLUSER");   
+                $pass    = getenv("MYSQLPASSWORD");
                 $charset = "utf8mb4";
 
                 $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
@@ -37,6 +37,7 @@ class DatabaseConfig {
     /**
      * Initialize database (create tables if not exist)
      */
+
     public static function initializeDatabase() {
         try {
             $pdo = self::getConnection();

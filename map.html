@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Peta Wilayah - Samudata</title>
+    <title>Peta Wilayah - Samudera</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -33,14 +33,14 @@
         <div class="flex items-center justify-between h-16 px-6 border-b border-gray-200">
             <div class="flex items-center">
                 <i class="fas fa-water text-blue-600 text-xl mr-2"></i>
-                <span class="font-bold text-lg">Samudata</span>
+                <span class="font-bold text-lg">Samudera</span>
             </div>
             <button id="sidebar-toggle" class="lg:hidden">
                 <i class="fas fa-times text-gray-500"></i>
             </button>
         </div>
         
-        <nav class="mt-6 h-full overflow-y-auto">
+        <nav class="mt-6 h-full overflow-y-auto" style="max-height: calc(100vh - 120px); overflow-y: auto;">
             <div class="px-6 mb-6">
                 <div class="flex items-center">
                     <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -103,6 +103,12 @@
                     <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg">
                         <i class="fas fa-shipping-fast mr-3"></i>
                         Ekspor Perikanan
+                    </a>
+                </li>
+                <li>
+                    <a href="ekspor-perikanan.html" class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg">
+                        <i class="fas fa-money-bills mr-3"></i>
+                        Investasi Kelautan Perikanan
                     </a>
                 </li>
                 <li class="pt-2">

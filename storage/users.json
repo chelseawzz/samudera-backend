@@ -1,0 +1,12 @@
+{
+    "admin@samudera.com": {
+        "name": "Administrator",
+        "role": "admin",
+        "password_hash": "$2y$10$OWlu4yqQe19HIY1PQbMAvuEcRODJfgb92xp6vHyB56P7K98smbudm"
+    },
+    "user@samudera.com": {
+        "name": "User",
+        "role": "user",
+        "password_hash": "$2y$10$h4ZzJqGeX0vld7ZiFbSKFe9x8Ls6QGP3KMF3.HxURh3vHz9ChPMYG"
+    }
+}
