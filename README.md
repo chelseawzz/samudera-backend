@@ -1,4 +1,4 @@
-# SAMUDERA Frontend  
+# SAMUDERA
 ## Sistem Analisis dan Monitoring Data Perikanan dan Kelautan Provinsi Jawa Timur  
 
 **Slogan:** *"Lautnya Luas, Datanya Jelas – SAMUDERA, Solusi Cerdas."*  
