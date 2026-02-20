@@ -5,49 +5,49 @@
 
 ---
 
-## 📋 Deskripsi
+## Deskripsi
 Frontend aplikasi **SAMUDERA** dibangun menggunakan **React.js + TypeScript** dengan antarmuka modern dan interaktif untuk visualisasi data statistik kelautan dan perikanan di Dinas Kelautan dan Perikanan (DKP) Provinsi Jawa Timur.
 
 ---
 
-## ✨ Fitur Utama
+## Fitur Utama
 
-### 🏠 Landing Page
+### Landing Page
 - 6 kartu statistik real-time (Tangkap, Budidaya, KPP, Pengolahan, Ekspor, Investasi)  
 - Navigasi langsung ke halaman detail per bidang  
 - Animasi wave background dan desain modern  
 
-### 📊 Dashboard
+### Dashboard
 - Ringkasan produksi per bidang dengan filter tahun (2020–2024)  
 - Grafik interaktif (Bar, Line, Pie) menggunakan Recharts  
 - Tabel data per kabupaten/kota dengan sorting & pagination  
 - Export data ke Excel  
 
-### 📈 Data Statistik per Bidang
+### Data Statistik per Bidang
 - **Perikanan Tangkap:** Nelayan, Armada, Volume, Nilai, Komoditas  
 - **Perikanan Budidaya:** Volume, Nilai, Pembudidaya, Luas Area, Ikan Hias  
 - **KPP Garam:** Luas Lahan, Kelompok, Petambak, Volume Produksi  
 - **Pengolahan & Pemasaran:** AKI, Pemasaran, Olahan per Kab/Kota  
 - **Ekspor Perikanan:** Total Ekspor, Komoditas Utama, Negara Tujuan  
 
-### 🗺️ Peta Interaktif (JatimMap)
+### Peta Interaktif (JatimMap)
 - GeoJSON batas wilayah 38 kabupaten/kota Jawa Timur  
 - Color coding berdasarkan nilai produksi  
 - Tooltip detail saat hover  
 - Filter tahun & jenis perikanan  
 
-### 🗂️ File Manager (Admin Only)
+### File Manager (Admin Only)
 - Upload file Excel dengan validasi otomatis  
 - Template Excel per komponen  
 - Delete file dengan cascade ke database  
 - Audit log aktivitas  
 
-### 🔐 Autentikasi & Keamanan
+### Autentikasi & Keamanan
 - Login khusus admin dengan session management  
 - Role-based access control  
 - Protected routes untuk halaman admin  
 
-### ⚙️ Pengaturan Akun (Admin)
+### Pengaturan Akun (Admin)
 - Edit profil: Nama, Email, Telepon  
 - Ubah password dengan validasi kompleksitas  
 
@@ -119,11 +119,11 @@ samudera-frontend/
 ```
 
 Frontend repo:  
-👉 https://github.com/chelseawzz/samudata_frontend
+https://github.com/chelseawzz/samudata_frontend
 
 ---
 
-# 🚀 PANDUAN SETUP LOKAL
+# PANDUAN SETUP LOKAL
 
 Ikuti langkah ini agar SAMUDERA bisa jalan di komputer lokal.
 
@@ -149,6 +149,7 @@ mysql --version
 node -v
 npm -v
 ```
+Pastikan node.js yang digunakan versi terbaru v24.
 
 # 2. Install Backend
 
