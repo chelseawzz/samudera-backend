@@ -202,6 +202,6 @@ Kalau pakai database lokal:
 4. Jalankan Frontend
    Di terminal VsCode folder samudata_frontend:
     * pnpm run dev
-Atau jika Menggunakan cmd, maka masuk ke folder tampat penyimpanan misalnya C:/ Samudata_frotnend dan jalankan pnpm run dev.
+Atau jika Menggunakan cmd, maka masuk ke folder tampat penyimpanan misalnya C:/ Samudata_frontend dan jalankan pnpm run dev.
 
 
