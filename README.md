@@ -116,6 +116,7 @@ samudera-frontend/
 ├── tailwind.config.js
 ├── index.html
 └── README.md
+```
 
 Frontend repo:  
 👉 https://github.com/chelseawzz/samudata_frontend
